@@ -4,10 +4,28 @@ from . import models
 from .database import engine, get_db
 from pydantic import BaseModel
 from typing import Optional
-
-models.Base.metadata.create_all(bind=engine)
+import time
+import logging
 
 app = FastAPI(title="WallyGrow API")
+
+@app.on_event("startup")
+async def startup_event():
+    max_retries = 30
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            models.Base.metadata.create_all(bind=engine)
+            logging.info("Database tables created successfully")
+            break
+        except Exception as e:
+            retry_count += 1
+            logging.warning(f"Database connection attempt {retry_count}/{max_retries} failed: {e}")
+            if retry_count >= max_retries:
+                logging.error("Could not connect to database after maximum retries")
+                raise e
+            time.sleep(2)
 
 # Schemas
 class ClienteCreate(BaseModel):
@@ -34,7 +52,7 @@ class VentaCreate(BaseModel):
 # Endpoints
 @app.get("/")
 def root():
-    return {"message": "WallyGrow API"}
+    return {"message": "WallyGrow API - Sistema de Gestión Comercial"}
 
 @app.post("/clientes")
 def crear_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
