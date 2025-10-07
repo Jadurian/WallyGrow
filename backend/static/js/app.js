@@ -1,6 +1,7 @@
 let carrito = [];
 let productos = [];
 let clientes = [];
+let proveedores = [];
 
 // Navegación
 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -14,6 +15,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 
 // Cargar datos iniciales
 async function init() {
+    await cargarProveedores();
     await cargarProductos();
     await cargarClientes();
     await cargarReportes();
@@ -44,44 +46,58 @@ function renderProductosGrid() {
 function renderProductosTabla() {
     const tabla = document.getElementById('productos-tabla');
     tabla.innerHTML = `
-        <table>
+        <table class="tabla">
             <thead>
                 <tr>
                     <th>Nombre</th>
                     <th>Precio</th>
                     <th>Stock</th>
+                    <th>Proveedor</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                ${productos.map(p => `
-                    <tr>
-                        <td>${p.nombre}</td>
-                        <td>$${p.precio.toFixed(2)}</td>
-                        <td>${p.stock}</td>
-                        <td>
-                            <button onclick="eliminarProducto(${p.id})" class="btn-danger">Eliminar</button>
-                        </td>
-                    </tr>
-                `).join('')}
+                ${productos.map(p => {
+                    const proveedor = proveedores.find(pr => pr.id === p.proveedor_id);
+                    return `
+                        <tr>
+                            <td>${p.nombre}</td>
+                            <td>$${p.precio.toFixed(2)}</td>
+                            <td>${p.stock}</td>
+                            <td>${proveedor ? proveedor.nombre : 'Sin proveedor'}</td>
+                            <td>
+                                <button onclick="eliminarProducto(${p.id})" class="btn-danger btn-small">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('')}
             </tbody>
         </table>
     `;
 }
 
+function renderProveedoresSelect() {
+    const select = document.getElementById('producto-proveedor');
+    select.innerHTML = '<option value="">Sin proveedor</option>' +
+        proveedores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+}
+
 document.getElementById('producto-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const proveedorId = document.getElementById('producto-proveedor').value;
     const data = {
         nombre: document.getElementById('producto-nombre').value,
         precio: parseFloat(document.getElementById('producto-precio').value),
-        stock: parseInt(document.getElementById('producto-stock').value)
+        stock: parseInt(document.getElementById('producto-stock').value),
+        proveedor_id: proveedorId ? parseInt(proveedorId) : null
     };
     try {
         await api.post('/productos', data);
         e.target.reset();
         await cargarProductos();
+        mostrarMensaje('Producto agregado exitosamente', 'success');
     } catch (error) {
-        alert('Error al agregar producto');
+        mostrarMensaje('Error al agregar producto: ' + error.message, 'error');
     }
 });
 
@@ -90,8 +106,9 @@ async function eliminarProducto(id) {
         try {
             await api.delete(`/productos/${id}`);
             await cargarProductos();
+            mostrarMensaje('Producto eliminado exitosamente', 'success');
         } catch (error) {
-            alert('Error al eliminar producto');
+            mostrarMensaje('Error al eliminar producto: ' + error.message, 'error');
         }
     }
 }
@@ -116,7 +133,7 @@ function renderClientesSelect() {
 function renderClientesTabla() {
     const tabla = document.getElementById('clientes-tabla');
     tabla.innerHTML = `
-        <table>
+        <table class="tabla">
             <thead>
                 <tr>
                     <th>Nombre</th>
@@ -132,7 +149,7 @@ function renderClientesTabla() {
                         <td>${c.telefono || '-'}</td>
                         <td>${c.email || '-'}</td>
                         <td>
-                            <button onclick="eliminarCliente(${c.id})" class="btn-danger">Eliminar</button>
+                            <button onclick="eliminarCliente(${c.id})" class="btn-danger btn-small">Eliminar</button>
                         </td>
                     </tr>
                 `).join('')}
@@ -152,8 +169,9 @@ document.getElementById('cliente-form').addEventListener('submit', async (e) => 
         await api.post('/clientes', data);
         e.target.reset();
         await cargarClientes();
+        mostrarMensaje('Cliente agregado exitosamente', 'success');
     } catch (error) {
-        alert('Error al agregar cliente');
+        mostrarMensaje('Error al agregar cliente: ' + error.message, 'error');
     }
 });
 
@@ -162,8 +180,9 @@ async function eliminarCliente(id) {
         try {
             await api.delete(`/clientes/${id}`);
             await cargarClientes();
+            mostrarMensaje('Cliente eliminado exitosamente', 'success');
         } catch (error) {
-            alert('Error al eliminar cliente');
+            mostrarMensaje('Error al eliminar cliente: ' + error.message, 'error');
         }
     }
 }
@@ -172,7 +191,7 @@ async function eliminarCliente(id) {
 function agregarAlCarrito(productoId) {
     const producto = productos.find(p => p.id === productoId);
     if (!producto || producto.stock === 0) {
-        alert('Producto sin stock');
+        mostrarMensaje('Producto sin stock disponible', 'warning');
         return;
     }
     
@@ -180,8 +199,9 @@ function agregarAlCarrito(productoId) {
     if (itemExistente) {
         if (itemExistente.cantidad < producto.stock) {
             itemExistente.cantidad++;
+            mostrarMensaje(`${producto.nombre} agregado al carrito`, 'success');
         } else {
-            alert('No hay más stock disponible');
+            mostrarMensaje('No hay más stock disponible', 'warning');
             return;
         }
     } else {
@@ -191,6 +211,7 @@ function agregarAlCarrito(productoId) {
             precio: producto.precio,
             cantidad: 1
         });
+        mostrarMensaje(`${producto.nombre} agregado al carrito`, 'success');
     }
     renderCarrito();
 }
@@ -210,7 +231,7 @@ function cambiarCantidad(productoId, delta) {
             eliminarDelCarrito(productoId);
         } else if (item.cantidad > producto.stock) {
             item.cantidad = producto.stock;
-            alert('No hay más stock disponible');
+            mostrarMensaje('No hay más stock disponible', 'warning');
         }
         renderCarrito();
     }
@@ -219,18 +240,25 @@ function cambiarCantidad(productoId, delta) {
 function renderCarrito() {
     const container = document.getElementById('carrito-items');
     if (carrito.length === 0) {
-        container.innerHTML = '<p class="carrito-vacio">Carrito vacío</p>';
+        container.innerHTML = `
+            <div class="carrito-vacio">
+                <p>🛒 Carrito vacío</p>
+                <small>Selecciona productos para agregar</small>
+            </div>
+        `;
     } else {
         container.innerHTML = carrito.map(item => `
             <div class="carrito-item">
                 <div class="item-info">
                     <strong>${item.nombre}</strong>
-                    <span>$${item.precio.toFixed(2)}</span>
+                    <span class="item-precio">$${item.precio.toFixed(2)} c/u</span>
                 </div>
                 <div class="item-controls">
-                    <button onclick="cambiarCantidad(${item.producto_id}, -1)">-</button>
-                    <span>${item.cantidad}</span>
-                    <button onclick="cambiarCantidad(${item.producto_id}, 1)">+</button>
+                    <div class="cantidad-control">
+                        <button class="cantidad-btn" onclick="cambiarCantidad(${item.producto_id}, -1)">-</button>
+                        <span class="cantidad-display">${item.cantidad}</span>
+                        <button class="cantidad-btn" onclick="cambiarCantidad(${item.producto_id}, 1)">+</button>
+                    </div>
                     <button onclick="eliminarDelCarrito(${item.producto_id})" class="btn-remove">×</button>
                 </div>
             </div>
@@ -243,13 +271,13 @@ function renderCarrito() {
 
 document.getElementById('procesar-venta').addEventListener('click', async () => {
     if (carrito.length === 0) {
-        alert('El carrito está vacío');
+        mostrarMensaje('El carrito está vacío. Agrega productos para continuar.', 'warning');
         return;
     }
     
     const clienteId = document.getElementById('cliente-select').value;
     if (!clienteId) {
-        alert('Selecciona un cliente');
+        mostrarMensaje('Selecciona un cliente para continuar con la venta', 'warning');
         return;
     }
     
@@ -264,13 +292,14 @@ document.getElementById('procesar-venta').addEventListener('click', async () => 
     
     try {
         await api.post('/ventas', venta);
-        alert('Venta procesada exitosamente');
+        mostrarMensaje('Venta procesada exitosamente', 'success');
         carrito = [];
         renderCarrito();
+        document.getElementById('cliente-select').value = '';
         await cargarProductos();
         await cargarReportes();
     } catch (error) {
-        alert('Error al procesar la venta');
+        mostrarMensaje('Error al procesar la venta: ' + error.message, 'error');
     }
 });
 
@@ -295,8 +324,9 @@ document.getElementById('cliente-modal-form').addEventListener('submit', async (
         e.target.reset();
         modal.style.display = 'none';
         await cargarClientes();
+        mostrarMensaje('Cliente agregado exitosamente', 'success');
     } catch (error) {
-        alert('Error al agregar cliente');
+        mostrarMensaje('Error al agregar cliente: ' + error.message, 'error');
     }
 });
 
@@ -311,29 +341,140 @@ async function cargarReportes() {
         
         const tabla = document.getElementById('ventas-tabla');
         tabla.innerHTML = `
-            <table>
+            <table class="tabla">
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>Cliente</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
                         <th>Total</th>
                         <th>Fecha</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${ventas.slice(-10).reverse().map(v => `
-                        <tr>
-                            <td>#${v.id}</td>
-                            <td>${clientes.find(c => c.id === v.cliente_id)?.nombre || 'N/A'}</td>
-                            <td>$${v.total.toFixed(2)}</td>
-                            <td>${new Date(v.fecha).toLocaleString()}</td>
-                        </tr>
-                    `).join('')}
+                    ${ventas.slice(-10).reverse().map(v => {
+                        const cliente = clientes.find(c => c.id === v.cliente_id);
+                        const producto = productos.find(p => p.id === v.producto_id);
+                        return `
+                            <tr>
+                                <td>#${v.id}</td>
+                                <td>${cliente?.nombre || 'N/A'}</td>
+                                <td>${producto?.nombre || 'N/A'}</td>
+                                <td>${v.cantidad}</td>
+                                <td>$${v.total.toFixed(2)}</td>
+                                <td>${new Date(v.fecha).toLocaleString()}</td>
+                            </tr>
+                        `;
+                    }).join('')}
                 </tbody>
             </table>
         `;
     } catch (error) {
         console.error('Error cargando reportes:', error);
+    }
+}
+
+// Sistema de mensajes
+function mostrarMensaje(mensaje, tipo = 'info') {
+    const container = document.getElementById('mensaje-container') || crearContenedorMensajes();
+    
+    const div = document.createElement('div');
+    div.className = `mensaje mensaje-${tipo}`;
+    div.innerHTML = `
+        <span>${mensaje}</span>
+        <button onclick="this.parentElement.remove()">&times;</button>
+    `;
+    
+    container.appendChild(div);
+    
+    setTimeout(() => {
+        if (div.parentElement) {
+            div.remove();
+        }
+    }, 5000);
+}
+
+function crearContenedorMensajes() {
+    const container = document.createElement('div');
+    container.id = 'mensaje-container';
+    container.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        max-width: 400px;
+    `;
+    document.body.appendChild(container);
+    return container;
+}
+
+// PROVEEDORES
+async function cargarProveedores() {
+    try {
+        proveedores = await api.get('/proveedores');
+        renderProveedoresSelect();
+        renderProveedoresTabla();
+    } catch (error) {
+        console.error('Error cargando proveedores:', error);
+    }
+}
+
+function renderProveedoresTabla() {
+    const tabla = document.getElementById('proveedores-tabla');
+    tabla.innerHTML = `
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${proveedores.map(p => `
+                    <tr>
+                        <td>${p.nombre}</td>
+                        <td>${p.telefono || '-'}</td>
+                        <td>${p.email || '-'}</td>
+                        <td>
+                            <button onclick="eliminarProveedor(${p.id})" class="btn-danger btn-small">Eliminar</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+document.getElementById('proveedor-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        nombre: document.getElementById('proveedor-nombre').value,
+        telefono: document.getElementById('proveedor-telefono').value,
+        email: document.getElementById('proveedor-email').value
+    };
+    try {
+        await api.post('/proveedores', data);
+        e.target.reset();
+        await cargarProveedores();
+        mostrarMensaje('Proveedor agregado exitosamente', 'success');
+    } catch (error) {
+        mostrarMensaje('Error al agregar proveedor: ' + error.message, 'error');
+    }
+});
+
+async function eliminarProveedor(id) {
+    if (confirm('¿Eliminar este proveedor?')) {
+        try {
+            await api.delete(`/proveedores/${id}`);
+            await cargarProveedores();
+            await cargarProductos(); // Recargar productos para actualizar referencias
+            mostrarMensaje('Proveedor eliminado exitosamente', 'success');
+        } catch (error) {
+            mostrarMensaje('Error al eliminar proveedor: ' + error.message, 'error');
+        }
     }
 }
 

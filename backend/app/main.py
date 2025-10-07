@@ -32,6 +32,12 @@ async def startup_event():
         try:
             models.Base.metadata.create_all(bind=engine)
             logging.info("Database tables created successfully")
+            
+            # Crear datos de prueba
+            db = next(get_db())
+            if db.query(models.Cliente).count() == 0:
+                crear_datos_prueba(db)
+            
             break
         except Exception as e:
             retry_count += 1
@@ -40,6 +46,42 @@ async def startup_event():
                 logging.error("Could not connect to database after maximum retries")
                 raise e
             time.sleep(2)
+
+def crear_datos_prueba(db: Session):
+    # Clientes de prueba
+    clientes = [
+        models.Cliente(nombre="Juan Pérez", telefono="555-0101", email="juan@email.com"),
+        models.Cliente(nombre="María García", telefono="555-0102", email="maria@email.com"),
+        models.Cliente(nombre="Carlos López", telefono="555-0103")
+    ]
+    
+    # Proveedores de prueba
+    proveedores = [
+        models.Proveedor(nombre="Distribuidora ABC", telefono="555-1001", email="ventas@abc.com"),
+        models.Proveedor(nombre="Mayorista XYZ", telefono="555-1002")
+    ]
+    
+    for cliente in clientes:
+        db.add(cliente)
+    for proveedor in proveedores:
+        db.add(proveedor)
+    
+    db.commit()
+    
+    # Productos de prueba
+    productos = [
+        models.Producto(nombre="Coca Cola 500ml", precio=2.50, stock=50, proveedor_id=1),
+        models.Producto(nombre="Pan Integral", precio=1.80, stock=30, proveedor_id=2),
+        models.Producto(nombre="Leche Entera 1L", precio=3.20, stock=25, proveedor_id=1),
+        models.Producto(nombre="Arroz 1kg", precio=4.50, stock=40, proveedor_id=2),
+        models.Producto(nombre="Aceite Girasol 900ml", precio=5.80, stock=20, proveedor_id=1)
+    ]
+    
+    for producto in productos:
+        db.add(producto)
+    
+    db.commit()
+    logging.info("Datos de prueba creados exitosamente")
 
 # Schemas
 class ClienteCreate(BaseModel):
@@ -58,10 +100,14 @@ class ProductoCreate(BaseModel):
     stock: int = 0
     proveedor_id: Optional[int] = None
 
-class VentaCreate(BaseModel):
-    cliente_id: int
+class VentaItemCreate(BaseModel):
     producto_id: int
     cantidad: int
+    precio_unitario: float
+
+class VentaCreate(BaseModel):
+    cliente_id: int
+    items: list[VentaItemCreate]
 
 # Endpoints
 @app.get("/")
@@ -106,25 +152,59 @@ def listar_productos(db: Session = Depends(get_db)):
 
 @app.post("/ventas")
 def crear_venta(venta: VentaCreate, db: Session = Depends(get_db)):
-    producto = db.query(models.Producto).filter(models.Producto.id == venta.producto_id).first()
-    if not producto:
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
-    if producto.stock < venta.cantidad:
-        raise HTTPException(status_code=400, detail="Stock insuficiente")
+    total_venta = 0
+    ventas_creadas = []
     
-    total = producto.precio * venta.cantidad
-    db_venta = models.Venta(
-        cliente_id=venta.cliente_id,
-        producto_id=venta.producto_id,
-        cantidad=venta.cantidad,
-        total=total
-    )
-    producto.stock -= venta.cantidad
-    db.add(db_venta)
+    for item in venta.items:
+        producto = db.query(models.Producto).filter(models.Producto.id == item.producto_id).first()
+        if not producto:
+            raise HTTPException(status_code=404, detail=f"Producto {item.producto_id} no encontrado")
+        if producto.stock < item.cantidad:
+            raise HTTPException(status_code=400, detail=f"Stock insuficiente para {producto.nombre}")
+        
+        total_item = item.precio_unitario * item.cantidad
+        total_venta += total_item
+        
+        db_venta = models.Venta(
+            cliente_id=venta.cliente_id,
+            producto_id=item.producto_id,
+            cantidad=item.cantidad,
+            total=total_item
+        )
+        producto.stock -= item.cantidad
+        db.add(db_venta)
+        ventas_creadas.append(db_venta)
+    
     db.commit()
-    db.refresh(db_venta)
-    return db_venta
+    return {"ventas": ventas_creadas, "total": total_venta}
 
 @app.get("/ventas")
 def listar_ventas(db: Session = Depends(get_db)):
     return db.query(models.Venta).all()
+
+@app.delete("/clientes/{cliente_id}")
+def eliminar_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    cliente = db.query(models.Cliente).filter(models.Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    db.delete(cliente)
+    db.commit()
+    return {"message": "Cliente eliminado"}
+
+@app.delete("/productos/{producto_id}")
+def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
+    producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    db.delete(producto)
+    db.commit()
+    return {"message": "Producto eliminado"}
+
+@app.delete("/proveedores/{proveedor_id}")
+def eliminar_proveedor(proveedor_id: int, db: Session = Depends(get_db)):
+    proveedor = db.query(models.Proveedor).filter(models.Proveedor.id == proveedor_id).first()
+    if not proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+    db.delete(proveedor)
+    db.commit()
+    return {"message": "Proveedor eliminado"}
