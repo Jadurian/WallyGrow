@@ -1,6 +1,6 @@
 # WallyGrow - Sistema de Gestión Comercial
 
-Sistema simple para gestión de ventas, inventario, clientes y proveedores.
+Proyecto dedicado a dar un sistema completo de comercio para gestión de ventas, inventario, clientes y proveedores.
 
 ## Tecnologías
 - FastAPI (Backend)
