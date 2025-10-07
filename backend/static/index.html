@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WallyGrow - Sistema de Gestión Comercial</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>🛒 WallyGrow</h1>
+            <nav class="nav">
+                <button class="nav-btn active" data-section="pos">Punto de Venta</button>
+                <button class="nav-btn" data-section="productos">Productos</button>
+                <button class="nav-btn" data-section="clientes">Clientes</button>
+                <button class="nav-btn" data-section="reportes">Reportes</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            
+            <!-- Punto de Venta -->
+            <section id="pos" class="section active">
+                <h2>Punto de Venta</h2>
+                <div class="pos-layout">
+                    <!-- Lista de Productos -->
+                    <div class="productos-grid">
+                        <h3>Productos Disponibles</h3>
+                        <div id="productos-lista" class="grid">
+                            <!-- Los productos se cargan dinámicamente -->
+                        </div>
+                    </div>
+                    
+                    <!-- Carrito de Compras -->
+                    <div class="carrito">
+                        <h3>Carrito de Compras</h3>
+                        <div class="cliente-selector">
+                            <select id="cliente-select">
+                                <option value="">Seleccionar Cliente</option>
+                            </select>
+                            <button id="nuevo-cliente-btn" class="btn-secondary">+ Cliente</button>
+                        </div>
+                        
+                        <div id="carrito-items" class="carrito-items">
+                            <!-- Items del carrito se agregan dinámicamente -->
+                        </div>
+                        
+                        <div class="carrito-total">
+                            <div class="total-line">
+                                <span>Total: $<span id="total-amount">0.00</span></span>
+                            </div>
+                            <button id="procesar-venta" class="btn-primary btn-large">Procesar Venta</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gestión de Productos -->
+            <section id="productos" class="section">
+                <h2>Gestión de Productos</h2>
+                <div class="section-layout">
+                    <div class="form-container">
+                        <h3>Agregar Producto</h3>
+                        <form id="producto-form">
+                            <input type="text" id="producto-nombre" placeholder="Nombre del producto" required>
+                            <input type="number" id="producto-precio" placeholder="Precio" step="0.01" required>
+                            <input type="number" id="producto-stock" placeholder="Stock inicial" required>
+                            <select id="producto-proveedor">
+                                <option value="">Sin proveedor</option>
+                            </select>
+                            <button type="submit" class="btn-primary">Agregar Producto</button>
+                        </form>
+                    </div>
+                    
+                    <div class="lista-container">
+                        <h3>Lista de Productos</h3>
+                        <div id="productos-tabla" class="tabla-container">
+                            <!-- Tabla se carga dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gestión de Clientes -->
+            <section id="clientes" class="section">
+                <h2>Gestión de Clientes</h2>
+                <div class="section-layout">
+                    <div class="form-container">
+                        <h3>Agregar Cliente</h3>
+                        <form id="cliente-form">
+                            <input type="text" id="cliente-nombre" placeholder="Nombre del cliente" required>
+                            <input type="tel" id="cliente-telefono" placeholder="Teléfono">
+                            <input type="email" id="cliente-email" placeholder="Email">
+                            <button type="submit" class="btn-primary">Agregar Cliente</button>
+                        </form>
+                    </div>
+                    
+                    <div class="lista-container">
+                        <h3>Lista de Clientes</h3>
+                        <div id="clientes-tabla" class="tabla-container">
+                            <!-- Tabla se carga dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reportes -->
+            <section id="reportes" class="section">
+                <h2>Reportes de Ventas</h2>
+                <div class="reportes-container">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Ventas Hoy</h3>
+                            <div class="stat-value" id="ventas-hoy">$0.00</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Productos</h3>
+                            <div class="stat-value" id="total-productos">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Clientes</h3>
+                            <div class="stat-value" id="total-clientes">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="ventas-recientes">
+                        <h3>Ventas Recientes</h3>
+                        <div id="ventas-tabla" class="tabla-container">
+                            <!-- Tabla se carga dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal para nuevo cliente -->
+    <div id="cliente-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Nuevo Cliente</h3>
+            <form id="cliente-modal-form">
+                <input type="text" id="modal-cliente-nombre" placeholder="Nombre" required>
+                <input type="tel" id="modal-cliente-telefono" placeholder="Teléfono">
+                <input type="email" id="modal-cliente-email" placeholder="Email">
+                <button type="submit" class="btn-primary">Guardar Cliente</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

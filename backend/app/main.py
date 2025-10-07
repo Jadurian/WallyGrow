@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from . import models
 from .database import engine, get_db
@@ -8,6 +10,18 @@ import time
 import logging
 
 app = FastAPI(title="WallyGrow API")
+
+# Configurar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Servir archivos estáticos
+app.mount("/static", StaticFiles(directory="/app/static"), name="static")
 
 @app.on_event("startup")
 async def startup_event():
