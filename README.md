@@ -178,9 +178,10 @@ wallygrow-test/
 │   │   ├── main.py          # Aplicación FastAPI principal
 │   │   ├── models.py        # Modelos SQLAlchemy
 │   │   └── database.py      # Configuración de base de datos
-│   ├── static/
+│   ├── static/              # Frontend servido por FastAPI
 │   │   ├── index.html       # Interfaz principal
-│   │   ├── css/styles.css   # Estilos
+│   │   ├── css/
+│   │   │   └── styles.css   # Estilos CSS
 │   │   └── js/
 │   │       ├── app.js       # Lógica de la aplicación
 │   │       └── api.js       # Cliente API
@@ -241,10 +242,22 @@ docker-compose down
 docker-compose down -v
 ```
 
+## 🏗️ Arquitectura
+
+El proyecto utiliza una **arquitectura monolítica simplificada** donde:
+
+- **Backend (FastAPI)**: Sirve tanto la API REST como los archivos estáticos del frontend
+- **Frontend**: Archivos estáticos (HTML/CSS/JS) servidos desde `backend/static/`
+- **Base de Datos**: PostgreSQL como almacenamiento principal
+- **Containerización**: Todo empaquetado con Docker Compose
+
+Esta estructura es ideal para aplicaciones pequeñas a medianas y facilita el despliegue.
+
 ## 📝 Notas
 
 - La aplicación incluye datos de prueba que se crean automáticamente
 - El sistema maneja automáticamente la creación de tablas al iniciar
-- Los archivos estáticos se sirven desde `/static/`
+- Los archivos estáticos se sirven desde `/static/` por FastAPI
 - La API incluye validación automática de esquemas con Pydantic
 - n8n está preconfigurado para automatizaciones futuras
+- **No hay duplicación de código**: El frontend está únicamente en `backend/static/`
