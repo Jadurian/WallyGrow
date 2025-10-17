@@ -126,8 +126,19 @@ async function cargarClientes() {
 
 function renderClientesSelect() {
     const select = document.getElementById('cliente-select');
-    select.innerHTML = '<option value="">Seleccionar Cliente</option>' +
-        clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    const consumidorFinal = clientes.find(c => c.nombre === 'Consumidor Final');
+    const otrosClientes = clientes.filter(c => c.nombre !== 'Consumidor Final');
+    
+    let html = '';
+    if (consumidorFinal) {
+        html += `<option value="${consumidorFinal.id}">${consumidorFinal.nombre}</option>`;
+    } else {
+        html += `<option value="1">Consumidor Final</option>`;
+    }
+    html += otrosClientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    
+    select.innerHTML = html;
+    select.value = consumidorFinal ? consumidorFinal.id : 1;
 }
 
 function renderClientesTabla() {
@@ -275,10 +286,9 @@ document.getElementById('procesar-venta').addEventListener('click', async () => 
         return;
     }
     
-    const clienteId = document.getElementById('cliente-select').value;
+    let clienteId = document.getElementById('cliente-select').value;
     if (!clienteId) {
-        mostrarMensaje('Selecciona un cliente para continuar con la venta', 'warning');
-        return;
+        clienteId = 1; // ID por defecto de Consumidor Final
     }
     
     const venta = {
@@ -295,7 +305,7 @@ document.getElementById('procesar-venta').addEventListener('click', async () => 
         mostrarMensaje('Venta procesada exitosamente', 'success');
         carrito = [];
         renderCarrito();
-        document.getElementById('cliente-select').value = '';
+        document.getElementById('cliente-select').value = 1; // Resetear a Consumidor Final
         await cargarProductos();
         await cargarReportes();
     } catch (error) {

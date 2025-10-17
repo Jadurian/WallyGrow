@@ -21,7 +21,10 @@ app.add_middleware(
 )
 
 # Servir archivos estáticos
-app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+import os
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.on_event("startup")
 async def startup_event():
@@ -48,6 +51,11 @@ async def startup_event():
             time.sleep(2)
 
 def crear_datos_prueba(db: Session):
+    # Cliente por defecto (siempre ID=1)
+    cliente_default = models.Cliente(nombre="Consumidor Final", telefono="", email="")
+    db.add(cliente_default)
+    db.commit()
+    
     # Clientes de prueba
     clientes = [
         models.Cliente(nombre="Juan Pérez", telefono="555-0101", email="juan@email.com"),
